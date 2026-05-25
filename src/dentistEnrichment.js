@@ -88,6 +88,31 @@ export async function extractPaymentOptionsFromCurrentPage(page) {
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 2b. PAYMENT OPTIONS — read from Maps "Payments" section directly
+// Maps uses distinct phrasings ("Credit cards", "NFC mobile payments") that
+// don't appear in marketing copy on websites, so we scan separately.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MAPS_PAYMENT_LABELS = {
+    'credit_cards':         ['credit cards', 'credit card'],
+    'debit_cards':          ['debit cards', 'debit card'],
+    'nfc_mobile_payments':  ['nfc mobile payments', 'mobile payments'],
+    'checks':               ['accepts checks', 'checks accepted'],
+    'cash_only':            ['cash only', 'cash-only'],
+};
+
+export async function extractPaymentOptionsFromMaps(page) {
+    return page.evaluate((labels) => {
+        const text = document.body.innerText.toLowerCase();
+        const matched = [];
+        for (const [key, keywords] of Object.entries(labels)) {
+            if (keywords.some(k => text.includes(k))) matched.push(key);
+        }
+        return matched.length ? matched : null;
+    }, MAPS_PAYMENT_LABELS).catch(() => null);
+}
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 3. INSURANCES ACCEPTED — NEW field, dental-specific
@@ -239,6 +264,47 @@ export async function extractServicesFromCurrentPage(page) {
     } catch {
         return null;
     }
+}
+
+// Maps "Offerings" section labels — distinct from website marketing copy.
+// These are the checkmark attributes Maps surfaces ("Emergency services",
+// "Pediatric care", "Sedation dentistry", etc.).
+const MAPS_OFFERING_LABELS = {
+    'Emergency Dental Care':  ['emergency services'],
+    'Pediatric Dentistry':    ['pediatric care', "children's care"],
+    'Sedation Dentistry':     ['sedation dentistry'],
+    'Implant Services':       ['implant services'],
+    'Cosmetic Dentistry':     ['cosmetic services'],
+    'Orthodontic Services':   ['orthodontic services', 'braces services'],
+};
+
+export async function extractServicesFromMaps(page) {
+    return page.evaluate((labels) => {
+        const text = document.body.innerText.toLowerCase();
+        const matched = [];
+        for (const [canonical, keywords] of Object.entries(labels)) {
+            if (keywords.some(k => text.includes(k))) matched.push(canonical);
+        }
+        return matched.length ? matched : null;
+    }, MAPS_OFFERING_LABELS).catch(() => null);
+}
+
+// Maps "Planning" section — appointment policy
+const MAPS_PLANNING_LABELS = {
+    'appointment_required':     ['appointment required'],
+    'appointments_recommended': ['appointments recommended'],
+    'walk_ins_welcome':         ['walk-ins welcome', 'walk ins welcome'],
+};
+
+export async function extractAppointmentPolicyFromMaps(page) {
+    return page.evaluate((labels) => {
+        const text = document.body.innerText.toLowerCase();
+        const matched = [];
+        for (const [key, keywords] of Object.entries(labels)) {
+            if (keywords.some(k => text.includes(k))) matched.push(key);
+        }
+        return matched.length ? matched : null;
+    }, MAPS_PLANNING_LABELS).catch(() => null);
 }
 
 
@@ -395,13 +461,91 @@ function analyseReviews(reviews) {
 // MASTER — Maps-Overview phase
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Click the Maps "About" tab so the structured attribute sections (Payments,
+ * Offerings, Accessibility, Planning, Amenities, Parking) load into the DOM.
+ *
+ * On the Overview tab these sections are condensed to a few pills (or hidden
+ * entirely on smaller places); the full structured panels only exist on
+ * About. After clicking, scroll the panel to force any remaining lazy
+ * content to render.
+ */
+async function openMapsAboutTab(page) {
+    const tabSelectors = [
+        'button[role="tab"][aria-label*="About" i]',
+        'button[aria-label*="About" i]',
+        'button[data-tab-index="2"]',
+    ];
+    let clicked = false;
+    for (const sel of tabSelectors) {
+        try {
+            const btn = page.locator(sel).first();
+            if (await btn.isVisible({ timeout: 1500 }).catch(() => false)) {
+                await btn.click();
+                clicked = true;
+                break;
+            }
+        } catch { /* try next */ }
+    }
+    if (!clicked) {
+        try {
+            const byRole = page.getByRole('tab', { name: /^about/i }).first();
+            if (await byRole.isVisible({ timeout: 1500 }).catch(() => false)) {
+                await byRole.click();
+                clicked = true;
+            }
+        } catch { /* nothing */ }
+    }
+    if (!clicked) return false;
+
+    // Wait for the About panel to render; fall back to a short sleep
+    try {
+        await page.waitForSelector('div.iP2t7d, h2, h3', { timeout: 4000 });
+    } catch { /* keep going */ }
+    await page.waitForTimeout(500);
+
+    // Scroll to force lazy-rendered attribute lists into the DOM
+    try {
+        await page.evaluate(() => {
+            const pane = document.querySelector('div[role="main"] div.m6QErb.DxyBCb')
+                || document.querySelector('div[role="main"]');
+            if (!pane) return;
+            for (let i = 0; i < 4; i++) pane.scrollBy(0, 800);
+        });
+        await page.waitForTimeout(500);
+    } catch { /* best-effort */ }
+
+    return true;
+}
+
 export async function enrichDentistFields(page, place) {
     const enriched = { ...place };
 
     enriched.specialties = inferSpecialties(place);
 
+    // Open the About tab so structured attribute panels (Payments / Offerings /
+    // Planning / Accessibility / Parking) load into the DOM. Maps Overview
+    // only shows condensed pills; the full panels live on About.
+    await openMapsAboutTab(page);
+
     const langs = await extractLanguagesFromMaps(page).catch(() => null);
     if (langs) enriched.languagesSpoken = langs;
+
+    // Structured Maps attribute panels (Payments / Offerings / Planning)
+    enriched.paymentOptions     = await extractPaymentOptionsFromMaps(page).catch(() => null);
+    enriched.servicesOffered    = await extractServicesFromMaps(page).catch(() => null);
+    enriched.appointmentPolicy  = await extractAppointmentPolicyFromMaps(page).catch(() => null);
+
+    // Scroll the panel back to top before switching to Reviews tab — leaving
+    // the About panel mid-scroll can confuse the Reviews tab's lazy load.
+    try {
+        await page.evaluate(() => {
+            const pane = document.querySelector('div[role="main"] div.m6QErb.DxyBCb')
+                || document.querySelector('div[role="main"]');
+            if (pane) pane.scrollTo(0, 0);
+        });
+        await page.waitForTimeout(300);
+    } catch { /* best-effort */ }
 
     // reviewSentiment runs LAST — clicks the Reviews tab and leaves panel there.
     enriched.reviewSentiment = await extractReviewSentiment(page).catch(() => null);

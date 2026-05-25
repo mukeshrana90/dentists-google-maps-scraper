@@ -151,20 +151,26 @@ const crawler = new PlaywrightCrawler({
                             Object.assign(enriched, extractSocialLinks(html));
                         }
                         if (enrichDentist) {
-                            // Specialties: merge Maps + website
+                            // All website extractors MERGE with the Maps-extracted
+                            // values (don't overwrite — Maps surfaces structured
+                            // attributes the website doesn't repeat).
                             const siteSpec = await extractSpecialtiesFromCurrentPage(page);
                             if (siteSpec) {
-                                const union = new Set([...(enriched.specialties ?? []), ...siteSpec]);
-                                enriched.specialties = [...union];
+                                enriched.specialties = [...new Set([...(enriched.specialties ?? []), ...siteSpec])];
                             }
-                            enriched.paymentOptions     = await extractPaymentOptionsFromCurrentPage(page);
+                            const sitePay = await extractPaymentOptionsFromCurrentPage(page);
+                            if (sitePay) {
+                                enriched.paymentOptions = [...new Set([...(enriched.paymentOptions ?? []), ...sitePay])];
+                            }
                             enriched.insurancesAccepted = await extractInsurancesFromCurrentPage(page);
                             const siteLangs = await extractLanguagesFromCurrentPage(page);
                             if (siteLangs) {
-                                const union = new Set([...(enriched.languagesSpoken ?? []), ...siteLangs]);
-                                enriched.languagesSpoken = [...union];
+                                enriched.languagesSpoken = [...new Set([...(enriched.languagesSpoken ?? []), ...siteLangs])];
                             }
-                            enriched.servicesOffered = await extractServicesFromCurrentPage(page);
+                            const siteServices = await extractServicesFromCurrentPage(page);
+                            if (siteServices) {
+                                enriched.servicesOffered = [...new Set([...(enriched.servicesOffered ?? []), ...siteServices])];
+                            }
                         }
                         if (enrichDentistNiche && !enriched.hasOnlineBooking) {
                             const b = await detectBookingFromCurrentWebsite(page);
@@ -291,6 +297,7 @@ function toOutputSchema(place, opts = {}) {
         out.insurancesAccepted  = place.insurancesAccepted  ?? null;
         out.languagesSpoken     = place.languagesSpoken     ?? null;
         out.servicesOffered     = place.servicesOffered     ?? null;
+        out.appointmentPolicy   = place.appointmentPolicy   ?? null;
         out.reviewSentiment     = place.reviewSentiment     ?? null;
     }
     if (opts.enrichDentistNiche) {
