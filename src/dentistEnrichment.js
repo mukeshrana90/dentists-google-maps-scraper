@@ -523,32 +523,26 @@ export async function enrichDentistFields(page, place) {
 
     enriched.specialties = inferSpecialties(place);
 
-    // Open the About tab so structured attribute panels (Payments / Offerings /
-    // Planning / Accessibility / Parking) load into the DOM. Maps Overview
-    // only shows condensed pills; the full panels live on About.
-    await openMapsAboutTab(page);
-
+    // Language detection on the Overview tab — runs first because some
+    // practices surface a "Languages" attribute in the Overview "Highlights"
+    // panel that's a quick text scan.
     const langs = await extractLanguagesFromMaps(page).catch(() => null);
     if (langs) enriched.languagesSpoken = langs;
 
-    // Structured Maps attribute panels (Payments / Offerings / Planning)
+    // Review sentiment runs while we're still on the Overview tab. The
+    // Reviews-tab click is much more reliable from Overview than from About;
+    // running it later (after the About-tab work) was producing null sentiment
+    // for all results because the lazy-load timing got disrupted.
+    enriched.reviewSentiment = await extractReviewSentiment(page).catch(() => null);
+
+    // NOW open the About tab to load structured attribute panels (Payments /
+    // Offerings / Planning / Accessibility / Parking). Maps Overview only
+    // shows condensed pills; the full panels live on About.
+    await openMapsAboutTab(page);
+
     enriched.paymentOptions     = await extractPaymentOptionsFromMaps(page).catch(() => null);
     enriched.servicesOffered    = await extractServicesFromMaps(page).catch(() => null);
     enriched.appointmentPolicy  = await extractAppointmentPolicyFromMaps(page).catch(() => null);
-
-    // Scroll the panel back to top before switching to Reviews tab — leaving
-    // the About panel mid-scroll can confuse the Reviews tab's lazy load.
-    try {
-        await page.evaluate(() => {
-            const pane = document.querySelector('div[role="main"] div.m6QErb.DxyBCb')
-                || document.querySelector('div[role="main"]');
-            if (pane) pane.scrollTo(0, 0);
-        });
-        await page.waitForTimeout(300);
-    } catch { /* best-effort */ }
-
-    // reviewSentiment runs LAST — clicks the Reviews tab and leaves panel there.
-    enriched.reviewSentiment = await extractReviewSentiment(page).catch(() => null);
 
     return enriched;
 }
