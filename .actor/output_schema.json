@@ -1,0 +1,13 @@
+{
+    "actorOutputSchemaVersion": 1,
+    "title": "Dentists dataset",
+    "description": "Scraped dentists and dental practices from Google Maps with contact details, specialties, payment options, insurances accepted, languages, services, booking detection, and practice-type / DSO classification.",
+    "properties": {
+        "defaultDataset": {
+            "type": "string",
+            "title": "Dentists",
+            "description": "Dataset containing scraped dentists / dental practices with 35+ fields including contact info, social media, specialties, payment options, insurances accepted, languages spoken, services list, review sentiment, online booking detection, new-patient promos, metro classification, and DSO/practice-type classification.",
+            "template": "{{links.apiDefaultDatasetUrl}}/items"
+        }
+    }
+}

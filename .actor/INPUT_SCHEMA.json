@@ -1,0 +1,79 @@
+{
+    "title": "Dentists Google Maps Scraper",
+    "description": "Scrapes dentists and dental practices from Google Maps with deep enrichment — emails, socials, specialties, payment options, insurances accepted, languages spoken, services list, review sentiment, online-booking / new-patient-promo detection, metro classification, and DSO/practice-type classification.",
+    "type": "object",
+    "schemaVersion": 1,
+    "properties": {
+        "searchTerms": {
+            "title": "Search terms",
+            "type": "array",
+            "description": "Dental specialties / search queries (e.g. dentist, orthodontist, oral surgeon, pediatric dentist, cosmetic dentist, dental implants)",
+            "editor": "stringList",
+            "prefill": ["dentist", "orthodontist"],
+            "default": ["dentist"],
+            "sectionCaption": "Search settings",
+            "sectionDescription": "Enter search terms and locations. Each term is combined with each location."
+        },
+        "locations": {
+            "title": "Locations",
+            "type": "array",
+            "description": "Cities, regions, or countries to search in (e.g. New York, USA or London, UK)",
+            "editor": "stringList",
+            "prefill": ["New York, USA"],
+            "default": ["New York, USA"]
+        },
+        "maxResults": {
+            "title": "Max results per search",
+            "type": "integer",
+            "description": "Maximum number of practices to scrape in total across all search term + location combinations",
+            "default": 50,
+            "prefill": 20,
+            "minimum": 1,
+            "maximum": 500
+        },
+        "minRating": {
+            "title": "Minimum rating filter",
+            "type": "number",
+            "description": "Only include practices with this Google rating or above (0 = no filter)",
+            "default": 0,
+            "prefill": 0,
+            "minimum": 0,
+            "maximum": 5,
+            "sectionCaption": "Filters"
+        },
+        "enrichEmails": {
+            "title": "Extract emails",
+            "type": "boolean",
+            "description": "Visit the practice website and extract the best contact email (homepage + /contact fallback). Prefers appointments@ / scheduling@ / frontdesk@ over generic addresses.",
+            "default": false,
+            "sectionCaption": "Enrichment options",
+            "sectionDescription": "Each enrichment adds extra data and run time."
+        },
+        "enrichSocials": {
+            "title": "Extract social media links",
+            "type": "boolean",
+            "description": "Extract Instagram, Facebook, LinkedIn, and X/Twitter profile links from the practice website",
+            "default": false
+        },
+        "enrichDentist": {
+            "title": "Dentist enrichment",
+            "type": "boolean",
+            "description": "Extract specialties (general / ortho / oral surgeon / endo / perio / pediatric / cosmetic), payment options, insurances accepted (Delta Dental, Aetna, Cigna, etc.), languages spoken, services list, and review sentiment analysis",
+            "default": false
+        },
+        "enrichDentistNiche": {
+            "title": "Niche classification",
+            "type": "boolean",
+            "description": "Detect online booking (NexHealth, Weave, Solutionreach, Calendly), new-patient promos ($99 exam / free X-rays / free consult), metro area, and practice type (solo / group / DSO chain like Aspen Dental, Heartland)",
+            "default": false
+        },
+        "proxyConfig": {
+            "title": "Proxy configuration",
+            "type": "object",
+            "description": "Residential proxies recommended for high-volume runs to avoid Google Maps blocks",
+            "editor": "proxy",
+            "default": { "useApifyProxy": true },
+            "sectionCaption": "Advanced settings"
+        }
+    }
+}

@@ -1,0 +1,110 @@
+{
+    "actorSpecification": 1,
+    "name": "dentists-google-maps-scraper",
+    "title": "Dentists Google Maps Scraper",
+    "description": "Scrape dentists and dental practices from Google Maps with email, social, specialties, payment options, insurances accepted, languages spoken, services list, review sentiment, online-booking / new-patient-promo detection, metro area classification, and DSO/practice-type classification.",
+    "version": "1.0",
+    "buildTag": "latest",
+    "minMemoryMbytes": 8192,
+    "maxMemoryMbytes": 32768,
+    "defaultRunOptions": {
+        "memoryMbytes": 8192,
+        "timeoutSecs": 1800
+    },
+    "input": "./INPUT_SCHEMA.json",
+    "output": "./output_schema.json",
+    "dockerfile": "../Dockerfile",
+    "storages": {
+        "dataset": {
+            "actorSpecification": 1,
+            "title": "Dentists",
+            "fields": {
+                "type": "object",
+                "properties": {
+                    "name":             { "type": ["string", "null"], "title": "Practice / Dentist Name" },
+                    "category":         { "type": ["string", "null"], "title": "Google Maps Category" },
+                    "subCategories":    { "type": ["array", "null"],  "title": "Sub-category tags" },
+                    "specialties":      { "type": ["array", "null"],  "title": "Specialties" },
+                    "address":          { "type": ["string", "null"], "title": "Street Address" },
+                    "fullAddress":      { "type": ["string", "null"], "title": "Full Address" },
+                    "city":             { "type": ["string", "null"], "title": "City" },
+                    "state":            { "type": ["string", "null"], "title": "State" },
+                    "country":          { "type": ["string", "null"], "title": "Country" },
+                    "postalCode":       { "type": ["string", "null"], "title": "Postal Code" },
+                    "latitude":         { "type": ["number", "null"], "title": "Latitude" },
+                    "longitude":        { "type": ["number", "null"], "title": "Longitude" },
+                    "phone":            { "type": ["string", "null"], "title": "Phone" },
+                    "website":          { "type": ["string", "null"], "title": "Website" },
+                    "email":            { "type": ["string", "null"], "title": "Email" },
+                    "instagram":        { "type": ["string", "null"], "title": "Instagram" },
+                    "facebook":         { "type": ["string", "null"], "title": "Facebook" },
+                    "linkedin":         { "type": ["string", "null"], "title": "LinkedIn" },
+                    "twitter":          { "type": ["string", "null"], "title": "Twitter / X" },
+                    "paymentOptions":   { "type": ["array", "null"],  "title": "Payment Options", "description": "insurance_accepted, in_network, financing, care_credit, etc." },
+                    "insurancesAccepted": { "type": ["array", "null"],"title": "Insurances Accepted", "description": "Delta Dental, Aetna, Cigna, MetLife, Humana, etc." },
+                    "languagesSpoken":  { "type": ["array", "null"],  "title": "Languages Spoken" },
+                    "servicesOffered":  { "type": ["array", "null"],  "title": "Services / Treatments" },
+                    "hasOnlineBooking":     { "type": ["boolean", "null"], "title": "Online Booking" },
+                    "bookingPlatform":      { "type": ["string", "null"],  "title": "Booking Platform" },
+                    "bookingUrl":           { "type": ["string", "null"],  "title": "Booking URL" },
+                    "hasNewPatientPromo":   { "type": ["boolean", "null"], "title": "New-Patient Promo" },
+                    "newPatientPromoEvidence": { "type": ["string", "null"], "title": "Promo Evidence" },
+                    "newPatientPromoUrl":   { "type": ["string", "null"],  "title": "Promo URL" },
+                    "isMetroArea":      { "type": ["boolean", "null"], "title": "In Metro Area" },
+                    "metroName":        { "type": ["string", "null"],  "title": "Metro Name" },
+                    "metroTier":        { "type": ["number", "null"],  "title": "Metro Tier" },
+                    "practiceType":     { "type": ["string", "null"],  "title": "Practice Type", "description": "solo / group / dso / unknown" },
+                    "practiceTypeLabel":{ "type": ["string", "null"],  "title": "Practice Type Label" },
+                    "dsoChainName":     { "type": ["string", "null"],  "title": "DSO Chain Name", "description": "If matched: Aspen Dental, Heartland, Pacific Dental Services, etc." },
+                    "practiceTypeConfidence": { "type": ["string", "null"], "title": "Classification Confidence" },
+                    "rating":           { "type": ["number", "null"],  "title": "Rating" },
+                    "reviewCount":      { "type": ["number", "null"],  "title": "Review Count" },
+                    "reviewSentiment":  { "type": ["object", "null"],  "title": "Review Sentiment" },
+                    "hours":            { "type": ["object", "null"],  "title": "Business Hours" },
+                    "isOpenNow":        { "type": ["boolean", "null"], "title": "Open Now" },
+                    "placeId":          { "type": ["string", "null"],  "title": "Place ID" },
+                    "mapsUrl":          { "type": ["string", "null"],  "title": "Maps URL" },
+                    "scrapedAt":        { "type": "string",            "title": "Scraped At" },
+                    "searchTerm":       { "type": ["string", "null"],  "title": "Search Term" },
+                    "searchLocation":   { "type": ["string", "null"],  "title": "Search Location" }
+                }
+            },
+            "views": {
+                "overview": {
+                    "title": "Overview",
+                    "transformation": {
+                        "fields": [
+                            "name", "category", "specialties", "fullAddress",
+                            "phone", "email", "website",
+                            "rating", "reviewCount",
+                            "practiceType", "dsoChainName",
+                            "insurancesAccepted",
+                            "hasOnlineBooking", "hasNewPatientPromo",
+                            "isMetroArea"
+                        ]
+                    },
+                    "display": {
+                        "component": "table",
+                        "properties": {
+                            "name":               { "label": "Name", "format": "text" },
+                            "category":           { "label": "Category", "format": "text" },
+                            "specialties":        { "label": "Specialties", "format": "array" },
+                            "fullAddress":        { "label": "Address", "format": "text" },
+                            "phone":              { "label": "Phone", "format": "text" },
+                            "email":              { "label": "Email", "format": "text" },
+                            "website":            { "label": "Website", "format": "link" },
+                            "rating":             { "label": "Rating", "format": "number" },
+                            "reviewCount":        { "label": "Reviews", "format": "number" },
+                            "practiceType":       { "label": "Practice Type", "format": "text" },
+                            "dsoChainName":       { "label": "DSO Chain", "format": "text" },
+                            "insurancesAccepted": { "label": "Insurances", "format": "array" },
+                            "hasOnlineBooking":   { "label": "Online Booking", "format": "boolean" },
+                            "hasNewPatientPromo": { "label": "Promo", "format": "boolean" },
+                            "isMetroArea":        { "label": "Metro Area", "format": "boolean" }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
